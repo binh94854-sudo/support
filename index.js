@@ -1,3 +1,4 @@
+const keepAlive = require("./keepAlive");
 const { 
   Client, 
   GatewayIntentBits, 
@@ -151,4 +152,5 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // ========== LOGIN ==========
+keepAlive();
 client.login(process.env.DISCORD_TOKEN);
