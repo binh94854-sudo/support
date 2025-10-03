@@ -1,11 +1,11 @@
-const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder
+const { 
+  Client, 
+  GatewayIntentBits, 
+  Partials, 
+  EmbedBuilder, 
+  ActionRowBuilder, 
+  ButtonBuilder, 
+  ButtonStyle 
 } = require("discord.js");
 require("dotenv").config();
 
@@ -18,91 +18,137 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
+// ========== CONFIG ==========
+const STAFF_ROLE_ID = process.env.STAFF_ROLE_ID;
+const THUMBNAIL_URL = process.env.THUMBNAIL_URL;
+
+const COLOR_DEFAULT = process.env.COLOR_DEFAULT || "#7b7b7b";
+const COLOR_TICKET_OPEN = process.env.COLOR_TICKET_OPEN || "#2ECC71";
+const COLOR_TICKET_CLOSE = process.env.COLOR_TICKET_CLOSE || "#d70001";
+
+const FOOTER_SERVER = process.env.FOOTER_SERVER || "Server Info";
+const FOOTER_TICKET = process.env.FOOTER_TICKET || "Ticket System";
+
+// ========== READY ==========
 client.once("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
+});
 
-  const channel = client.channels.cache.get(process.env.TICKET_CHANNEL_ID);
-  if (channel) {
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 Ticket Support")
-      .setDescription("Nhấn nút bên dưới để mở ticket hỗ trợ staff.")
-      .setColor("#2b2d31");
+// ========== INTERACTION HANDLER ==========
+client.on("interactionCreate", async (interaction) => {
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === "main_menu") {
+      // ----- SERVER INFO -----
+      if (interaction.values[0] === "server_info") {
+        const serverInfo = new EmbedBuilder()
+          .setColor(COLOR_DEFAULT)
+          .setTitle("Server Information")
+          .setDescription(
+            "There's a 100% chance you're here because you're banned on the MBF Server and you want to appeal your ban, you must firstly understand our rules\n\n" +
+            "- Appeal Misusing, using AI, lying, or failing an appeal too many times will get you blacklisted for 7 days.\n" +
+            "- You can add additional information after writing up a ban appeal.\n" +
+            "- You must know your ban reason before making a ban appeal.\n" +
+            "> Please view <@155149108183695360> DM and review your ban reason.\n" +
+            "- You must wait a week before appealing after your ban, unless it is false.\n" +
+            "- Any main server rule broken here will lower the chance of your appeal being accepted.\n" +
+            "If the rule is extreme, we may put you at an unappealable position.\n\n" +
+            "**Appeal Blacklist**\n" +
+            "Given to members who have failed an appeal too many times, misused appeals, used AI, or lied.\n" +
+            "▢ Can also be given by staff if deemed necessary.\n\n" +
+            "**Watchlist**\n" +
+            "Members whose ban appeal is accepted but staff still suspects them may be put on watchlist.\n" +
+            "They will be subject to 4x warnings for 3 weeks even if no rule is broken after unban."
+          )
+          .setThumbnail(THUMBNAIL_URL)
+          .setFooter({ text: FOOTER_SERVER });
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("create_ticket")
-        .setLabel("📩 Open a Ticket")
-        .setStyle(ButtonStyle.Primary)
-    );
+        await interaction.reply({ embeds: [serverInfo], ephemeral: true });
+      }
 
-    await channel.send({ embeds: [embed], components: [row] });
-    console.log("📩 Ticket panel sent!");
-  } else {
-    console.log("⚠️ Không tìm thấy TICKET_CHANNEL_ID. Kiểm tra lại .env");
+      // ----- TICKET INFO -----
+      if (interaction.values[0] === "ticket_info") {
+        const ticketInfo = new EmbedBuilder()
+          .setColor(COLOR_DEFAULT)
+          .setTitle("Appeal and Unappealable Offences")
+          .addFields(
+            {
+              name: "Appealable Offences",
+              value:
+                "```• 5+ Warnings\n" +
+                "• Hate speech/Racism\n" +
+                "• Underage\n" +
+                "• Punishment Evasion```",
+              inline: true
+            },
+            {
+              name: "Unappealable Offences",
+              value:
+                "```• Cybercrimes\n" +
+                "• Child Endangerment\n" +
+                "• 2 Bans\n" +
+                "• NSFW\n" +
+                "• Promotion of NSFW Servers\n" +
+                "• Raiding/Nuking```",
+              inline: true
+            }
+          )
+          .setThumbnail(THUMBNAIL_URL)
+          .setFooter({ text: FOOTER_TICKET });
+
+        await interaction.reply({ embeds: [ticketInfo], ephemeral: true });
+      }
+    }
+  }
+
+  // ----- BUTTON HANDLING -----
+  if (interaction.isButton()) {
+    if (interaction.customId === "open_ticket") {
+      const thread = await interaction.channel.threads.create({
+        name: `ticket-${interaction.user.username}`,
+        type: 12, // private thread
+        reason: "Support Ticket"
+      });
+
+      await thread.members.add(interaction.user.id);
+
+      await thread.send({
+        content: `<@&${STAFF_ROLE_ID}> New ticket created by <@${interaction.user.id}>`,
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLOR_TICKET_OPEN)
+            .setTitle("🎟️ Ticket Opened")
+            .setDescription(
+              "A staff member will be with you shortly.\n\n" +
+              "When finished, click **Close Ticket** below."
+            )
+        ],
+        components: [
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("close_ticket")
+              .setLabel("🔒 Close Ticket")
+              .setStyle(ButtonStyle.Danger)
+          )
+        ]
+      });
+
+      await interaction.reply({ content: `✅ Ticket created: ${thread}`, ephemeral: true });
+    }
+
+    if (interaction.customId === "close_ticket") {
+      await interaction.message.channel.send({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLOR_TICKET_CLOSE)
+            .setTitle("🔒 Ticket Closed")
+            .setDescription("This ticket has been closed. Thank you for contacting support!")
+        ]
+      });
+
+      await interaction.message.channel.setArchived(true);
+    }
   }
 });
 
-client.on("interactionCreate", async interaction => {
-  if (!interaction.isButton()) return;
-  const staffRoleId = process.env.STAFF_ROLE_ID;
-
-  // ===== Nút mở ticket =====
-  if (interaction.customId === "create_ticket") {
-    const channel = interaction.channel;
-
-    const existing = channel.threads.cache.find(
-      t => t.name === `ticket-${interaction.user.username}`
-    );
-    if (existing) {
-      return interaction.reply({
-        content: "❌ Bạn đã có ticket mở rồi!",
-        ephemeral: true
-      });
-    }
-
-    const thread = await channel.threads.create({
-      name: `ticket-${interaction.user.username}`,
-      autoArchiveDuration: 1440,
-      type: 12, // private thread
-      invitable: false
-    });
-
-    await thread.members.add(interaction.user.id);
-
-    await thread.send({
-      content: `<@${interaction.user.id}> đã mở ticket! <@&${staffRoleId}>`,
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("🎟 Ticket Opened")
-          .setDescription("Hãy mô tả vấn đề của bạn, staff sẽ phản hồi sớm.")
-          .setColor("#2ecc71")
-      ],
-      components: [
-        new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("close_ticket")
-            .setLabel("🔒 Close Ticket")
-            .setStyle(ButtonStyle.Danger)
-        )
-      ]
-    });
-
-    interaction.reply({
-      content: `✅ Ticket đã mở: ${thread}`,
-      ephemeral: true
-    });
-  }
-
-  // ===== Nút đóng ticket =====
-  if (interaction.customId === "close_ticket") {
-    if (interaction.channel.isThread()) {
-      await interaction.channel.setArchived(true, "Ticket closed");
-      interaction.reply({
-        content: "✅ Ticket đã đóng!",
-        ephemeral: true
-      });
-    }
-  }
-});
-
-client.login(process.env.TOKEN);
+// ========== LOGIN ==========
+client.login(process.env.DISCORD_TOKEN);
