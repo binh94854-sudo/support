@@ -114,7 +114,21 @@ client.on("interactionCreate", async (interaction) => {
 
   // ----- BUTTON HANDLING -----
   if (interaction.isButton()) {
+    // ===== OPEN TICKET =====
     if (interaction.customId === "open_ticket") {
+      await interaction.deferReply({ ephemeral: true });
+
+      // Kiểm tra xem user đã có ticket chưa
+      const existingThread = interaction.channel.threads.cache.find(
+        (t) => t.name === `ticket-${interaction.user.username}` && !t.archived
+      );
+
+      if (existingThread) {
+        await interaction.editReply({ content: `⚠️ Bạn đã có ticket mở: ${existingThread}` });
+        return;
+      }
+
+      // Tạo thread mới
       const thread = await interaction.channel.threads.create({
         name: `ticket-${interaction.user.username}`,
         type: 12, // private thread
@@ -144,9 +158,10 @@ client.on("interactionCreate", async (interaction) => {
         ]
       });
 
-      await interaction.reply({ content: `✅ Ticket created: ${thread}`, ephemeral: true });
+      await interaction.editReply({ content: `✅ Ticket created: ${thread}` });
     }
 
+    // ===== CLOSE TICKET =====
     if (interaction.customId === "close_ticket") {
       await interaction.message.channel.send({
         embeds: [
