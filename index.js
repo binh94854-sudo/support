@@ -25,7 +25,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers // cần để add staff vào thread
   ],
   partials: [Partials.Channel]
 });
@@ -114,29 +115,26 @@ client.on("interactionCreate", async (interaction) => {
 
   // ----- BUTTON HANDLING -----
   if (interaction.isButton()) {
-    // ===== OPEN TICKET =====
     if (interaction.customId === "open_ticket") {
-      await interaction.deferReply({ ephemeral: true });
-
-      // Kiểm tra xem user đã có ticket chưa
-      const existingThread = interaction.channel.threads.cache.find(
-        (t) => t.name === `ticket-${interaction.user.username}` && !t.archived
-      );
-
-      if (existingThread) {
-        await interaction.editReply({ content: `⚠️ Bạn đã có ticket mở: ${existingThread}` });
-        return;
-      }
-
-      // Tạo thread mới
+      // Tạo private thread
       const thread = await interaction.channel.threads.create({
         name: `ticket-${interaction.user.username}`,
         type: 12, // private thread
         reason: "Support Ticket"
       });
 
+      // Add user mở ticket
       await thread.members.add(interaction.user.id);
 
+      // Add staff role vào thread
+      const staffRole = interaction.guild.roles.cache.get(STAFF_ROLE_ID);
+      if (staffRole) {
+        staffRole.members.forEach(member => {
+          thread.members.add(member.id).catch(() => {});
+        });
+      }
+
+      // Gửi tin nhắn trong thread
       await thread.send({
         content: `<@&${STAFF_ROLE_ID}> New ticket created by <@${interaction.user.id}>`,
         embeds: [
@@ -158,10 +156,9 @@ client.on("interactionCreate", async (interaction) => {
         ]
       });
 
-      await interaction.editReply({ content: `✅ Ticket created: ${thread}` });
+      await interaction.reply({ content: `✅ Ticket created: ${thread}`, ephemeral: true });
     }
 
-    // ===== CLOSE TICKET =====
     if (interaction.customId === "close_ticket") {
       await interaction.message.channel.send({
         embeds: [
