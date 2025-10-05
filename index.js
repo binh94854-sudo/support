@@ -45,6 +45,17 @@ const FOOTER_TICKET = process.env.FOOTER_TICKET || "Ticket System";
 // ========== READY ==========
 client.once("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
+
+  // ⚔️ Set status: Watching Attack on Titan
+  client.user.setPresence({
+    activities: [
+      {
+        name: "Attack on Titan",
+        type: 3 // Watching
+      }
+    ],
+    status: "online"
+  });
 });
 
 // ========== INTERACTION HANDLER ==========
@@ -116,17 +127,14 @@ client.on("interactionCreate", async (interaction) => {
   // ----- BUTTON HANDLING -----
   if (interaction.isButton()) {
     if (interaction.customId === "open_ticket") {
-      // Tạo private thread
       const thread = await interaction.channel.threads.create({
         name: `ticket-${interaction.user.username}`,
-        type: 12, // private thread
+        type: 12,
         reason: "Support Ticket"
       });
 
-      // Add user mở ticket
       await thread.members.add(interaction.user.id);
 
-      // Add staff role vào thread
       const staffRole = interaction.guild.roles.cache.get(STAFF_ROLE_ID);
       if (staffRole) {
         staffRole.members.forEach(member => {
@@ -134,7 +142,6 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      // Gửi tin nhắn trong thread
       await thread.send({
         content: `<@&${STAFF_ROLE_ID}> New ticket created by <@${interaction.user.id}>`,
         embeds: [
