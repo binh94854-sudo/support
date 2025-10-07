@@ -101,7 +101,7 @@ client.on("interactionCreate", async (interaction) => {
                 "```• 5+ Warnings\n" +
                 "• Hate speech/Racism\n" +
                 "• Underage\n" +
-                "• Punishment Evasion
+                "• Punishment Evasion\n" +
                 "• Spam ```",
               inline: true
             },
