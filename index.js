@@ -101,7 +101,8 @@ client.on("interactionCreate", async (interaction) => {
                 "```• 5+ Warnings\n" +
                 "• Hate speech/Racism\n" +
                 "• Underage\n" +
-                "• Punishment Evasion```",
+                "• Punishment Evasion
+                "• Spam ```",
               inline: true
             },
             {
@@ -143,7 +144,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       await thread.send({
-        content: `<@&${STAFF_ROLE_ID}> New ticket created by <@${interaction.user.id}>`,
+        content: `||<@&${STAFF_ROLE_ID}> New ticket created by <@${interaction.user.id}>||`,
         embeds: [
           new EmbedBuilder()
             .setColor(COLOR_TICKET_OPEN)
